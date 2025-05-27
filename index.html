@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Etichette Batteria</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4facfe">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Etichette Batteria">
+    
+    <!-- Manifest inline -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkV0aWNoZXR0ZSBCYXR0ZXJpYSIsCiAgInNob3J0X25hbWUiOiAiRXRpY2hldHRlQmF0dCIsCiAgImRlc2NyaXB0aW9uIjogIkdlbmVyYSBlIHN0YW1wYSBldGljaGV0dGUgcGVyIGJhdHRlcmllIGNvbiBPQ1IiLAogICJzdGFydF91cmwiOiAiLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzY2N2VlYSIsCiAgInRoZW1lX2NvbG9yIjogIiM0ZmFjZmUiLAogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjNhV1IwYUQwaU1Ua3lJaUJvWldsbmFIUTlJakU1TWlJZ2RtbGxkMEp2ZUQwaU1DQXdJREU1TWlBeE9USWlJR1pwYkd3OUltNXZibVVpSUhodGJHNXpQU0pvZEhSd09pOHZkM2QzTG5jekxtOXlaeTh5TURBd0wzTjJaeUkrQ2p4eVpXTjBJSGRwWkhSb1BTSXhPVElpSUdobGFXZG9kRDBpTVRreUlpQnllRDBpTWpRaUlHWnBiR3c5SWlNMFptRmpabVVpTHo0S1BITjJaeUI0UFNJME9DSWdlVDBpTkRnaUlIZHBaSFJvUFNJNU5pSWdhR1ZwWjJoMFBTSTVOaUlnZG1sbGQwSnZlRDBpTUNBd0lESTBJREkwSWlCbWFXeHNQU0ozYUdsMFpTSStDbkJ3WVhSb0lHUTlTVTB4TlNBMFZqSklNVGRXTkVneE5WcE5NVFVnT1ZZMlNEbFdPVWd4TlZwTk9TQXhOVlkxTUVneFpWWXhOVWc1V2swNUlERTVWako2U0RsWldrazNJREkzU0RWV01qQklOMVl5TWxwTk4yY3hPRWcxVmpFMlNEZFdNVGhiVERjZ01UUklOVlkxVWtnM1ZqRTBXazAzSURFd1NEVldPRWczVmpFd1drMDNJRFpJTlZZMFNEZFdObG9pTHo0S1BDOXpkbWMrQ2p3dmMzWm5QZz09IiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogICAgfQogIF0sCiAgImNhdGVnb3JpZXMiOiBbInByb2R1Y3Rpdml0eSIsICJ1dGlsaXRpZXMiXQp9">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .status-bar {
+            height: 24px;
+            background: #4facfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .install-prompt {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 10px 15px;
+            margin: 15px 0 0 0;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        
+        .install-prompt:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .main-content {
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+        
+        .input-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4facfe;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+        
+        .serial-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .serial-input-container input {
+            flex: 1;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+            -webkit-appearance: none;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .camera-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-camera {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #4facfe;
+            border-radius: 12px;
+            background: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
+        }
+        
+        .btn-camera:active {
+            transform: scale(0.95);
+            background: #4facfe;
+        }
+        
+        .size-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .camera-section {
+            background: #f0f8ff;
+            border: 2px dashed #4facfe;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .camera-preview {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 10px;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .processing {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            display: none;
+        }
+        
+        .loading-bar {
+            width: 150px;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin: 10px auto;
+            overflow: hidden;
+        }
+        
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: #4facfe;
+            animation: loading 2s ease-in-out infinite;
+        }
+        
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        .extracted-text {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .extracted-text h4 {
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        
+        .text-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .text-option {
+            background: white;
+            border: 2px solid #17a2b8;
+            border-radius: 20px;
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .text-option:active {
+            background: #17a2b8;
+            color: white;
+            transform: scale(0.95);
+        }
+        
+        .ocr-fallback {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .preview-section {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .preview-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .label-preview {
+            width: 220px;
+            height: 105px;
+            background: white;
+            display: inline-flex;
+            border: 2px solid #333;
+            margin: 15px auto;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-radius: 4px;
+        }
+        
+        .label-left {
+            background: #333;
+            color: white;
+            width: 25%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+            line-height: 0.9;
+        }
+        
+        .label-right {
+            width: 75%;
+            display: flex;
+            flex-direction: column;
+            padding: 2px 5px;
+        }
+        
+        .label-date {
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+            flex: 0 0 auto;
+            padding: 2px 0;
+            font-size: 11px;
+        }
+        
+        .label-battery {
+            text-align: left;
+            font-weight: bold;
+            font-size: 10px;
+            border-bottom: 1px solid #333;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+        }
+        
+        .label-serial {
+            text-align: left;
+            font-weight: bold;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            font-size: 9px;
+        }
+        
+        .action-buttons {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            padding: 15px 20px 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 16px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+        }
+        
+        .btn-secondary:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(245, 87, 108, 0.4);
+        }
+        
+        .close-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .close-btn:active {
+            background: #c82333;
+        }
+        
+        .status-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            max-width: 90%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 480px) {
+            .size-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .label-preview {
+                width: 180px;
+                height: 86px;
+            }
+            
+            .label-left {
+                font-size: 20px;
+            }
+            
+            .label-date {
+                font-size: 9px;
+            }
+            
+            .label-battery {
+                font-size: 8px;
+            }
+            
+            .label-serial {
+                font-size: 7px;
+            }
+        }
+        
+        .vibrate {
+            animation: vibrate 0.3s ease-in-out;
+        }
+        
+        @keyframes vibrate {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="status-bar">
+            🔋 Etichette Batteria v1.0
+        </div>
+        
+        <div class="header">
+            <h1>🔋 Etichette Batteria</h1>
+            <p>Genera e stampa etichette professionali</p>
+            <div id="installPrompt" class="install-prompt" onclick="installApp()">
+                📱 Installa come App
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="serialInput">Numero Seriale:</label>
+                    <div class="serial-input-container">
+                        <input type="text" id="serialInput" placeholder="Inserisci il numero seriale..." value="SN 123456789">
+                        <div class="camera-buttons">
+                            <button type="button" class="btn-camera" onclick="openCamera()" title="Scatta foto">
+                                📷
+                            </button>
+                            <button type="button" class="btn-camera" onclick="openGallery()" title="Carica dalla galleria">
+                                🖼️
+                            </button>
+                        </div>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" capture="camera" style="display: none;">
+                    <input type="file" id="galleryInput" accept="image/*" style="display: none;">
+                </div>
+                
+                <div id="cameraSection" class="camera-section">
+                    <h3>📸 Elaborazione Immagine</h3>
+                    <img id="capturedImage" class="camera-preview" style="display: none;">
+                    <div id="processing" class="processing">
+                        <div>🔍 Riconoscimento testo in corso...</div>
+                        <div class="loading-bar">
+                            <div class="loading-progress"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
+                            Questo potrebbe richiedere alcuni secondi...
+                        </div>
+                    </div>
+                    <div id="extractedText" class="extracted-text">
+                        <h4>📝 Testo riconosciuto:</h4>
+                        <div id="textResults"></div>
+                        <div class="text-options" id="textOptions"></div>
+                    </div>
+                    <div id="ocrFallback" class="ocr-fallback">
+                        <h4>⚠️ OCR non disponibile</h4>
+                        <p>Il riconoscimento automatico del testo non è disponibile in questo momento. Puoi inserire il numero seriale manualmente nel campo sopra.</p>
+                    </div>
+                    <button type="button" class="close-btn" onclick="closeCamera()">
+                        ❌ Chiudi
+                    </button>
+                </div>
+                
+                <div class="input-group">
+                    <label for="dateInput">Data:</label>
+                    <input type="date" id="dateInput">
+                </div>
+                
+                <div class="size-controls">
+                    <div class="input-group">
+                        <label for="serialSize">Font Seriale:</label>
+                        <select id="serialSize">
+                            <option value="8px">Piccolo</option>
+                            <option value="10px" selected>Medio</option>
+                            <option value="12px">Grande</option>
+                            <option value="14px">Extra</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="dateSize">Font Data:</label>
+                        <select id="dateSize">
+                            <option value="10px">Piccolo</option>
+                            <option value="12px" selected>Medio</option>
+                            <option value="14px">Grande</option>
+                            <option value="16px">Extra</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="preview-section">
+                <div class="preview-title">📱 Anteprima Etichetta</div>
+                <div class="label-preview">
+                    <div class="label-left">
+                        <div>V</div>
+                        <div>0</div>
+                    </div>
+                    <div class="label-right">
+                        <div class="label-date" id="labelDate"></div>
+                        <div class="label-battery">Batteria sost.</div>
+                        <div class="label-serial" id="labelSerial">SN 123456789</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="printLabel()">
+                🖨️ Stampa
+            </button>
+            <button class="btn btn-secondary" onclick="downloadLabel()">
+                💾 Salva
+            </button>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+    
+    <script>
+        // Global variables
+        let deferredPrompt;
+        let tesseractLoaded = false;
+        
+        // PWA Install functionality
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').style.display = 'block';
+        });
+        
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showMessage('🎉 App installata con successo!');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('installPrompt').style.display = 'none';
+                });
+            } else {
+                showMessage('💡 Usa il menu del browser per "Aggiungi alla Home"');
+            }
+        }
+        
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
+                    const CACHE_NAME = 'etichette-batteria-v1.0';
+                    const urlsToCache = [
+                        '/',
+                        'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js'
+                    ];
+                    
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME)
+                                .then(cache => {
+                                    return cache.addAll(urlsToCache).catch(err => {
+                                        console.log('Cache failed for some resources:', err);
+                                    });
+                                })
+                        );
+                    });
+                    
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request)
+                                .then(response => response || fetch(event.request))
+                                .catch(() => {
+                                    // Fallback for offline
+                                    if (event.request.destination === 'document') {
+                                        return caches.match('/');
+                                    }
+                                })
+                        );
+                    });
+                `], { type: 'application/javascript' }))).catch(err => {
+                    console.log('Service Worker registration failed:', err);
+                });
+            });
+        }
+        
+        // Load Tesseract.js dynamically
+        function loadTesseract() {
+            return new Promise((resolve, reject) => {
+                if (window.Tesseract) {
+                    tesseractLoaded = true;
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+                script.onload = () => {
+                    tesseractLoaded = true;
+                    resolve();
+                };
+                script.onerror = () => {
+                    // Try alternative CDN
+                    const altScript = document.createElement('script');
+                    altScript.src = 'https://unpkg.com/tesseract.js@4/dist/tesseract.min.js';
+                    altScript.onload = () => {
+                        tesseractLoaded = true;
+                        resolve();
+                    };
+                    altScript.onerror = reject;
+                    document.head.appendChild(altScript);
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Initialize with today's date
+        document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+        
+        // Update preview when inputs change
+        function updatePreview() {
+            const serial = document.getElementById('serialInput').value || 'SN 123456789';
+            const date = formatDate(document.getElementById('dateInput').value);
+            const serialSize = document.getElementById('serialSize').value;
+            const dateSize = document.getElementById('dateSize').value;
+            
+            document.getElementById('labelSerial').textContent = serial;
+            document.getElementById('labelDate').textContent = date;
+            document.getElementById('labelSerial').style.fontSize = serialSize;
+            document.getElementById('labelDate').style.fontSize = dateSize;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return new Date().toLocaleDateString('it-IT');
+            const date = new Date(dateString);
+            return date.toLocaleDateString('it-IT');
+        }
+        
+        function showMessage(text, isError = false) {
+            const msg = document.getElementById('statusMessage');
+            msg.textContent = text;
+            msg.className = 'status-message' + (isError ? ' error-message' : '');
+            msg.style.display = 'block';
+            
+            // Vibrate on mobile if supported
+            if ('vibrate' in navigator) {
+                navigator.vibrate(isError ? [100, 50, 100] : [50]);
+            }
+            
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 3000);
+        }
+        
+        function printLabel() {
+            const serialText = document.getElementById('labelSerial').textContent;
+            const dateText = document.getElementById('labelDate').textContent;
+            const serialFontSize = document.getElementById('labelSerial').style.fontSize || '10px';
+            const dateFontSize = document.getElementById('labelDate').style.fontSize || '12px';
+            
+            if (!serialText.trim()) {
+                showMessage('⚠️ Inserisci un numero seriale valido', true);
+                document.getElementById('serialInput').classList.add('vibrate');
+                setTimeout(() => document.getElementById('serialInput').classList.remove('vibrate'), 300);
+                return;
+            }
+            
+            try {
+                const printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    showMessage('⚠️ Popup bloccato. Abilita i popup per stampare.', true);
+                    return;
+                }
+                
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Etichetta Batteria - ${serialText}</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <style>
+                            @page {
+                                size: 25mm 12mm;
+                                margin: 0;
+                            }
+                            body {
+                                margin: 0;
+                                padding: 0;
+                                font-family: Arial, sans-serif;
+                            }
+                            .label {
+                                width: 25mm;
+                                height: 12mm;
+                                background: white;
+                                display: flex;
+                                border: none;
+                            }
+                            .label-left {
+                                background: black;
+                                color: white;
+                                width: 25%;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
+                                font-weight: bold;
+                                font-size: 3mm;
+                                line-height: 0.9;
+                            }
+                            .label-right {
+                                width: 75%;
+                                display: flex;
+                                flex-direction: column;
+                                padding: 0.2mm 0.5mm;
+                            }
+                            .label-date {
+                                text-align: center;
+                                font-weight: bold;
+                                font-size: ${dateFontSize};
+                                border-bottom: 0.2mm solid black;
+                                flex: 0 0 auto;
+                                padding: 0.2mm 0;
+                            }
+                            .label-battery {
+                                text-align: left;
+                                font-weight: bold;
+                                font-size: 2mm;
+                                border-bottom: 0.2mm solid black;
+                                flex: 1;
+                                display: flex;
+                                align-items: center;
+                                padding: 0 0.5mm;
+                            }
+                            .label-serial {
+                                text-align: left;
+                                font-weight: bold;
+                                font-size: ${serialFontSize};
+                                flex: 1;
+                                display: flex;
+                                align-items: center;
+                                padding: 0 0.5mm;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="label">
+                            <div class="label-left">
+                                <div>V</div>
+                                <div>0</div>
+                            </div>
+                            <div class="label-right">
+                                <div class="label-date">${dateText}</div>
+                                <div class="label-battery">Batteria sost.</div>
+                                <div class="label-serial">${serialText}</div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `);
+                
+                printWindow.document.close();
+                setTimeout(() => {
+                    printWindow.print();
+                    showMessage('🖨️ Stampa avviata con successo!');
+                }, 250);
+            } catch (error) {
+                showMessage('❌ Errore durante la stampa: ' + error.message, true);
+            }
+        }
+
+        function downloadLabel() {
+            const serialText = document.getElementById('labelSerial').textContent;
+            
+            if (!serialText.trim()) {
+                showMessage('⚠️ Inserisci un numero seriale valido', true);
+                document.getElementById('serialInput').classList.add('vibrate');
+                setTimeout(() => document.getElementById('serialInput').classList.remove('vibrate'), 300);
+                return;
+            }
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const dpi = 300;
+                const mmToPx = dpi / 25.4;
+                canvas.width = 25 * mmToPx;
+                canvas.height = 12 * mmToPx;
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width * 0.25, canvas.height);
+                
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.beginPath();
+                ctx.moveTo(canvas.width * 0.25, canvas.height * 0.25);
+                ctx.lineTo(canvas.width, canvas.height * 0.25);
+                ctx.moveTo(canvas.width * 0.25, canvas.height * 0.67);
+                ctx.lineTo(canvas.width, canvas.height * 0.67);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${40}px Arial`;
+                
+                ctx.fillText('V', canvas.width * 0.125, canvas.height * 0.35);
+                ctx.fillText('0', canvas.width * 0.125, canvas.height * 0.65);
+                
+                ctx.fillStyle = 'black';
+                
+                ctx.font = `bold ${25}px Arial`;
+                ctx.fillText(
+                    document.getElementById('labelDate').textContent,
+                    canvas.width * 0.625,
+                    canvas.height * 0.125
+                );
+                
+                ctx.textAlign = 'left';
+                ctx.font = `bold ${20}px Arial`;
+                ctx.fillText(
+                    'Batteria sost.',
+                    canvas.width * 0.28,
+                    canvas.height * 0.46
+                );
+                
+                const serialFontSize = parseInt(document.getElementById('labelSerial').style.fontSize) * 3.5 || 22;
+                ctx.font = `bold ${serialFontSize}px Arial`;
+                ctx.fillText(
+                    document.getElementById('labelSerial').textContent,
+                    canvas.width * 0.28,
+                    canvas.height * 0.83
+                );
+                
+                const link = document.createElement('a');
+                link.download = `etichetta_batteria_${document.getElementById('labelSerial').textContent.replace('SN ', '').replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                
+                showMessage('💾 Etichetta salvata con successo!');
+            } catch (error) {
+                showMessage('❌ Errore durante il salvataggio: ' + error.message, true);
+            }
+        }
+        
+        // Camera and OCR functions
+        function openCamera() {
+            const input = document.getElementById('imageInput');
+            if (input) {
+                input.click();
+            } else {
+                showMessage('❌ Fotocamera non disponibile', true);
+            }
+        }
+        
+        function openGallery() {
+            const input = document.getElementById('galleryInput');
+            if (input) {
+                input.click();
+            } else {
+                showMessage('❌ Galleria non disponibile', true);
+            }
+        }
+        
+        function closeCamera() {
+            const elements = ['cameraSection', 'capturedImage', 'processing', 'extractedText', 'ocrFallback'];
+            elements.forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) {
+                    elem.style.display = 'none';
+                }
+            });
+        }
+        
+        function handleImageCapture(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const cameraSection = document.getElementById('cameraSection');
+            if (cameraSection) {
+                cameraSection.style.display = 'block';
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('capturedImage');
+                if (img) {
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                }
+                
+                processImageWithOCR(e.target.result);
+            };
+            reader.onerror = function() {
+                showMessage('❌ Errore nella lettura del file', true);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function processImageWithOCR(imageData) {
+            const processing = document.getElementById('processing');
+            const extractedText = document.getElementById('extractedText');
+            const ocrFallback = document.getElementById('ocrFallback');
+            
+            if (processing) processing.style.display = 'block';
+            if (extractedText) extractedText.style.display = 'none';
+            if (ocrFallback) ocrFallback.style.display = 'none';
+            
+            loadTesseract().then(() => {
+                if (!window.Tesseract) {
+                    throw new Error('Tesseract not loaded');
+                }
+                
+                return Tesseract.recognize(
+                    imageData,
+                    'eng+ita',
+                    {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                console.log(`Progresso OCR: ${Math.round(m.progress * 100)}%`);
+                            }
+                        }
+                    }
+                );
+            }).then(({ data: { text } }) => {
+                if (processing) processing.style.display = 'none';
+                
+                const extractedSerials = extractSerialNumbers(text);
+                
+                if (extractedSerials && extractedSerials.length > 0) {
+                    displayExtractedText(text, extractedSerials);
+                } else {
+                    showMessage('⚠️ Nessun seriale riconosciuto. Inserisci manualmente.', true);
+                    if (extractedText) extractedText.style.display = 'none';
+                }
+            }).catch(err => {
+                console.error('OCR Error:', err);
+                if (processing) processing.style.display = 'none';
+                if (ocrFallback) ocrFallback.style.display = 'block';
+                showMessage('⚠️ OCR non disponibile. Inserisci manualmente.', true);
+            });
+        }
+        
+        function extractSerialNumbers(text) {
+            if (!text) return [];
+            
+            const serials = [];
+            const lines = text.split('\n');
+            
+            const patterns = [
+                /SN\s*[:\-]?\s*([A-Z0-9]{6,})/gi,
+                /S\.?N\.?\s*[:\-]?\s*([A-Z0-9]{6,})/gi,
+                /SERIAL\s*[:\-]?\s*([A-Z0-9]{6,})/gi,
+                /\b([A-Z]{2,}[0-9]{6,})\b/g,
+                /\b([0-9]{8,})\b/g,
+                /\b([A-Z0-9]{8,})\b/g
+            ];
+            
+            lines.forEach(line => {
+                const cleanLine = line.trim();
+                if (cleanLine.length > 0) {
+                    patterns.forEach(pattern => {
+                        let match;
+                        while ((match = pattern.exec(cleanLine)) !== null) {
+                            let serial = match[1] || match[0];
+                            serial = serial.replace(/^(SN|S\.?N\.?|SERIAL)\s*[:\-]?\s*/i, '').trim();
+                            if (serial.length >= 6 && serial.length <= 20) {
+                                serials.push(`SN ${serial}`);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            return [...new Set(serials)];
+        }
+        
+        function displayExtractedText(fullText, serials) {
+            const textResults = document.getElementById('textResults');
+            const textOptions = document.getElementById('textOptions');
+            const extractedText = document.getElementById('extractedText');
+            
+            if (textResults) {
+                textResults.textContent = fullText.substring(0, 150) + (fullText.length > 150 ? '...' : '');
+            }
+            
+            if (textOptions) {
+                textOptions.innerHTML = '';
+                serials.forEach(serial => {
+                    const option = document.createElement('div');
+                    option.className = 'text-option';
+                    option.textContent = serial;
+                    option.onclick = () => selectSerial(serial);
+                    textOptions.appendChild(option);
+                });
+            }
+            
+            if (extractedText) {
+                extractedText.style.display = 'block';
+            }
+            
+            showMessage(`🎯 Trovati ${serials.length} seriali!`);
+        }
+        
+        function selectSerial(serial) {
+            const serialInput = document.getElementById('serialInput');
+            if (serialInput) {
+                serialInput.value = serial;
+                updatePreview();
+            }
+            closeCamera();
+            showMessage('✅ Numero seriale selezionato!');
+            
+            if ('vibrate' in navigator) {
+                navigator.vibrate([50, 25, 50]);
+            }
+        }
+        
+        // Event listeners
+        function setupEventListeners() {
+            const elements = {
+                'serialInput': 'input',
+                'dateInput': 'change',
+                'serialSize': 'change',
+                'dateSize': 'change',
+                'imageInput': 'change',
+                'galleryInput': 'change'
+            };
+            
+            Object.entries(elements).forEach(([id, event]) => {
+                const elem = document.getElementById(id);
+                if (elem) {
+                    if (id.includes('Input') && id !== 'serialInput') {
+                        elem.addEventListener(event, handleImageCapture);
+                    } else {
+                        elem.addEventListener(event, updatePreview);
+                    }
+                }
+            });
+        }
+        
+        // Initialize app
+        function initApp() {
+            updatePreview();
+            setupEventListeners();
+            
+            // Add touch feedback
+            document.addEventListener('touchstart', function() {}, {passive: true});
+            
+            // Prevent zoom on double tap
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+            
+            console.log('🔋 App Etichette Batteria v1.0 inizializzata');
+        }
+        
+        // Start the app when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+</html>
