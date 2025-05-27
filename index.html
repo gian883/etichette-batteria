@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+x<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -512,6 +512,14 @@
                 
                 <div id="cameraSection" class="camera-section">
                     <h3>📸 Elaborazione Immagine</h3>
+                    <div style="background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 15px; margin: 10px 0; font-size: 0.9rem;">
+                        <strong>💡 Consigli per migliori risultati OCR:</strong><br>
+                        • 📷 Foto nitida e ben illuminata<br>
+                        • 📏 Numero seriale al centro dell'immagine<br>
+                        • 🔍 Zoom sul testo, evita sfondi complessi<br>
+                        • ⚡ Tieni fermo il telefono durante la foto<br>
+                        • 🌟 Luce naturale o LED bianchi per contrasto migliore
+                    </div>
                     <img id="capturedImage" class="camera-preview" style="display: none;">
                     <div id="processing" class="processing">
                         <div>🔍 Riconoscimento testo in corso...</div>
@@ -519,7 +527,7 @@
                             <div class="loading-progress"></div>
                         </div>
                         <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
-                            Questo potrebbe richiedere alcuni secondi...
+                            Analisi immagine... Questo può richiedere 10-30 secondi
                         </div>
                     </div>
                     <div id="extractedText" class="extracted-text">
@@ -529,7 +537,13 @@
                     </div>
                     <div id="ocrFallback" class="ocr-fallback">
                         <h4>⚠️ OCR non disponibile</h4>
-                        <p>Il riconoscimento automatico del testo non è disponibile in questo momento. Puoi inserire il numero seriale manualmente nel campo sopra.</p>
+                        <p>Il riconoscimento automatico del testo non è disponibile. Possibili cause:</p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>Connessione internet lenta</li>
+                            <li>Browser non supportato completamente</li>
+                            <li>Immagine di qualità insufficiente</li>
+                        </ul>
+                        <p><strong>Soluzione:</strong> Inserisci il numero seriale manualmente nel campo sopra.</p>
                     </div>
                     <button type="button" class="close-btn" onclick="closeCamera()">
                         ❌ Chiudi
@@ -658,7 +672,7 @@
             });
         }
         
-        // Load Tesseract.js dynamically
+        // Load multiple OCR libraries with fallbacks
         function loadTesseract() {
             return new Promise((resolve, reject) => {
                 if (window.Tesseract) {
@@ -667,24 +681,34 @@
                     return;
                 }
                 
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
-                script.onload = () => {
-                    tesseractLoaded = true;
-                    resolve();
-                };
-                script.onerror = () => {
-                    // Try alternative CDN
-                    const altScript = document.createElement('script');
-                    altScript.src = 'https://unpkg.com/tesseract.js@4/dist/tesseract.min.js';
-                    altScript.onload = () => {
-                        tesseractLoaded = true;
-                        resolve();
+                // Try multiple CDNs in sequence
+                const cdnUrls = [
+                    'https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js',
+                    'https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js'
+                ];
+                
+                function tryNextCDN(index) {
+                    if (index >= cdnUrls.length) {
+                        reject(new Error('All CDNs failed'));
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = cdnUrls[index];
+                    script.onload = () => {
+                        if (window.Tesseract) {
+                            tesseractLoaded = true;
+                            resolve();
+                        } else {
+                            tryNextCDN(index + 1);
+                        }
                     };
-                    altScript.onerror = reject;
-                    document.head.appendChild(altScript);
-                };
-                document.head.appendChild(script);
+                    script.onerror = () => tryNextCDN(index + 1);
+                    document.head.appendChild(script);
+                }
+                
+                tryNextCDN(0);
             });
         }
         
@@ -955,24 +979,51 @@
             const file = event.target.files[0];
             if (!file) return;
             
+            console.log('📁 File selezionato:', {
+                name: file.name,
+                size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                type: file.type
+            });
+            
+            // Verifica dimensione file
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                showMessage('⚠️ File troppo grande. Usa un\'immagine più piccola.', true);
+                return;
+            }
+            
+            // Verifica tipo file
+            if (!file.type.startsWith('image/')) {
+                showMessage('⚠️ Seleziona un file immagine valido.', true);
+                return;
+            }
+            
             const cameraSection = document.getElementById('cameraSection');
             if (cameraSection) {
                 cameraSection.style.display = 'block';
+                cameraSection.scrollIntoView({ behavior: 'smooth' });
             }
             
             const reader = new FileReader();
             reader.onload = function(e) {
+                console.log('📷 Immagine caricata, avvio preprocessing...');
+                
                 const img = document.getElementById('capturedImage');
                 if (img) {
                     img.src = e.target.result;
                     img.style.display = 'block';
                 }
                 
-                processImageWithOCR(e.target.result);
+                // Piccolo delay per permettere il rendering dell'immagine
+                setTimeout(() => {
+                    processImageWithOCR(e.target.result);
+                }, 500);
             };
-            reader.onerror = function() {
+            
+            reader.onerror = function(error) {
+                console.error('❌ Errore lettura file:', error);
                 showMessage('❌ Errore nella lettura del file', true);
             };
+            
             reader.readAsDataURL(file);
         }
         
@@ -985,38 +1036,115 @@
             if (extractedText) extractedText.style.display = 'none';
             if (ocrFallback) ocrFallback.style.display = 'none';
             
+            // Pre-process image for better OCR
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                // Resize if too large
+                const maxSize = 1200;
+                let { width, height } = img;
+                
+                if (width > maxSize || height > maxSize) {
+                    const ratio = Math.min(maxSize / width, maxSize / height);
+                    width *= ratio;
+                    height *= ratio;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw image
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Enhance contrast
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    // Convert to grayscale and enhance contrast
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    const enhanced = avg > 128 ? Math.min(255, avg * 1.2) : Math.max(0, avg * 0.8);
+                    data[i] = data[i + 1] = data[i + 2] = enhanced;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                const processedImage = canvas.toDataURL();
+                
+                // Try OCR with enhanced settings
+                performOCR(processedImage);
+            };
+            
+            img.src = imageData;
+        }
+        
+        function performOCR(imageData) {
             loadTesseract().then(() => {
                 if (!window.Tesseract) {
                     throw new Error('Tesseract not loaded');
                 }
                 
+                console.log('🔍 Avvio riconoscimento OCR...');
+                
                 return Tesseract.recognize(
                     imageData,
-                    'eng+ita',
+                    'eng+ita', // Lingue supportate
                     {
                         logger: m => {
                             if (m.status === 'recognizing text') {
-                                console.log(`Progresso OCR: ${Math.round(m.progress * 100)}%`);
+                                const progress = Math.round(m.progress * 100);
+                                console.log(`📊 Progresso OCR: ${progress}%`);
+                                
+                                // Update progress visually if needed
+                                const progressBar = document.querySelector('.loading-progress');
+                                if (progressBar) {
+                                    progressBar.style.width = `${progress}%`;
+                                }
                             }
-                        }
+                        },
+                        // Configurazioni OCR ottimizzate
+                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+                        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_:. ',
+                        preserve_interword_spaces: '1'
                     }
                 );
-            }).then(({ data: { text } }) => {
+            }).then(({ data: { text, confidence } }) => {
+                console.log('✅ OCR completato:', { text, confidence });
+                
+                const processing = document.getElementById('processing');
                 if (processing) processing.style.display = 'none';
                 
-                const extractedSerials = extractSerialNumbers(text);
+                // Clean up the recognized text
+                const cleanedText = text.replace(/[^\w\s\-:.]/g, ' ').replace(/\s+/g, ' ').trim();
+                console.log('🧹 Testo pulito:', cleanedText);
+                
+                const extractedSerials = extractSerialNumbers(cleanedText);
+                console.log('🔍 Seriali trovati:', extractedSerials);
                 
                 if (extractedSerials && extractedSerials.length > 0) {
-                    displayExtractedText(text, extractedSerials);
+                    displayExtractedText(cleanedText, extractedSerials);
+                    showMessage(`🎯 Trovati ${extractedSerials.length} possibili seriali! Confidenza: ${Math.round(confidence)}%`);
                 } else {
-                    showMessage('⚠️ Nessun seriale riconosciuto. Inserisci manualmente.', true);
-                    if (extractedText) extractedText.style.display = 'none';
+                    // Try alternative extraction methods
+                    const alternativeSerials = extractSerialsAlternative(cleanedText);
+                    if (alternativeSerials.length > 0) {
+                        displayExtractedText(cleanedText, alternativeSerials);
+                        showMessage(`🔍 Trovati ${alternativeSerials.length} seriali con metodo alternativo`);
+                    } else {
+                        showManualExtraction(cleanedText);
+                        showMessage('⚠️ Nessun seriale automatico trovato. Controlla il testo riconosciuto.', true);
+                    }
                 }
             }).catch(err => {
-                console.error('OCR Error:', err);
+                console.error('❌ Errore OCR:', err);
+                const processing = document.getElementById('processing');
+                const ocrFallback = document.getElementById('ocrFallback');
+                
                 if (processing) processing.style.display = 'none';
                 if (ocrFallback) ocrFallback.style.display = 'block';
-                showMessage('⚠️ OCR non disponibile. Inserisci manualmente.', true);
+                
+                showMessage('❌ OCR non disponibile. Prova con un\'immagine più chiara o inserisci manualmente.', true);
             });
         }
         
@@ -1024,34 +1152,196 @@
             if (!text) return [];
             
             const serials = [];
-            const lines = text.split('\n');
+            const lines = text.split(/[\n\r]+/);
             
+            // Pattern migliorati per numeri seriali
             const patterns = [
-                /SN\s*[:\-]?\s*([A-Z0-9]{6,})/gi,
-                /S\.?N\.?\s*[:\-]?\s*([A-Z0-9]{6,})/gi,
-                /SERIAL\s*[:\-]?\s*([A-Z0-9]{6,})/gi,
-                /\b([A-Z]{2,}[0-9]{6,})\b/g,
-                /\b([0-9]{8,})\b/g,
-                /\b([A-Z0-9]{8,})\b/g
+                // Pattern espliciti
+                /(?:SN|S\.?N\.?|SERIAL|Serie|Ser\.)\s*[:\-#]?\s*([A-Z0-9]{6,20})/gi,
+                // Pattern impliciti
+                /\b([A-Z]{2,4}[0-9]{6,12})\b/g,        // Lettere + numeri
+                /\b([0-9]{8,15})\b/g,                   // Solo numeri lunghi
+                /\b([A-Z0-9]{8,20})\b/g,               // Alfanumerici lunghi
+                // Pattern con separatori
+                /\b([A-Z0-9]{3,6}[\-_\.][A-Z0-9]{3,12})\b/g,
+                // Pattern specifici per batterie
+                /\b([A-Z]{1,3}[0-9]{6,12}[A-Z]{0,3})\b/g
             ];
             
-            lines.forEach(line => {
+            console.log('🔍 Analisi testo per pattern seriali...');
+            console.log('📄 Righe trovate:', lines.length);
+            
+            lines.forEach((line, index) => {
                 const cleanLine = line.trim();
-                if (cleanLine.length > 0) {
-                    patterns.forEach(pattern => {
-                        let match;
-                        while ((match = pattern.exec(cleanLine)) !== null) {
-                            let serial = match[1] || match[0];
-                            serial = serial.replace(/^(SN|S\.?N\.?|SERIAL)\s*[:\-]?\s*/i, '').trim();
-                            if (serial.length >= 6 && serial.length <= 20) {
-                                serials.push(`SN ${serial}`);
-                            }
+                if (cleanLine.length < 6) return; // Ignora righe troppo corte
+                
+                console.log(`📝 Riga ${index + 1}: "${cleanLine}"`);
+                
+                patterns.forEach((pattern, patternIndex) => {
+                    const matches = [...cleanLine.matchAll(pattern)];
+                    
+                    matches.forEach(match => {
+                        let serial = match[1] || match[0];
+                        
+                        // Pulizia del seriale
+                        serial = serial.replace(/^(SN|S\.?N\.?|SERIAL|Serie|Ser\.)\s*[:\-#]?\s*/i, '').trim();
+                        serial = serial.replace(/[^\w\-\.]/g, ''); // Rimuovi caratteri speciali
+                        
+                        // Verifica lunghezza e validità
+                        if (serial.length >= 6 && serial.length <= 25) {
+                            const formattedSerial = `SN ${serial}`;
+                            console.log(`✅ Pattern ${patternIndex + 1} - Seriale trovato: "${formattedSerial}"`);
+                            serials.push(formattedSerial);
                         }
                     });
+                });
+            });
+            
+            // Rimuovi duplicati e ordina per lunghezza (i più lunghi sono spesso più accurati)
+            const uniqueSerials = [...new Set(serials)].sort((a, b) => b.length - a.length);
+            console.log('🎯 Seriali unici trovati:', uniqueSerials);
+            
+            return uniqueSerials.slice(0, 10); // Massimo 10 risultati
+        }
+        
+        function extractSerialsAlternative(text) {
+            console.log('🔄 Tentativo estrazione alternativa...');
+            
+            const serials = [];
+            const words = text.split(/\s+/);
+            
+            // Cerca parole che assomigliano a seriali
+            words.forEach(word => {
+                const clean = word.replace(/[^\w]/g, '');
+                
+                // Criteri alternativi
+                if (clean.length >= 8 && clean.length <= 20) {
+                    const hasNumbers = /\d/.test(clean);
+                    const hasLetters = /[A-Za-z]/.test(clean);
+                    
+                    if (hasNumbers && (hasLetters || clean.length >= 10)) {
+                        serials.push(`SN ${clean}`);
+                    }
                 }
             });
             
-            return [...new Set(serials)];
+            return [...new Set(serials)].slice(0, 5);
+        }
+        
+        function showManualExtraction(fullText) {
+            const extractedText = document.getElementById('extractedText');
+            const textResults = document.getElementById('textResults');
+            const textOptions = document.getElementById('textOptions');
+            
+            if (!extractedText || !textResults || !textOptions) return;
+            
+            // Mostra tutto il testo per selezione manuale
+            textResults.innerHTML = `
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                    <strong>📄 Testo completo riconosciuto:</strong><br>
+                    <div style="font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 8px; margin-top: 5px;">
+${fullText}</div>
+                </div>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
+                    💡 <strong>Suggerimento:</strong> Cerca sequenze di lettere e numeri lunghe almeno 6-8 caratteri. 
+                    I numeri seriali spesso iniziano con lettere seguite da numeri, o sono solo numeri lunghi.
+                </p>
+            `;
+            
+            // Aggiungi pulsante per estrazione manuale
+            textOptions.innerHTML = `
+                <button onclick="tryManualExtraction()" style="
+                    background: #17a2b8; 
+                    color: white; 
+                    border: none; 
+                    padding: 10px 20px; 
+                    border-radius: 5px; 
+                    cursor: pointer;
+                    margin: 10px 5px;
+                ">🔍 Estrai Manualmente</button>
+                <button onclick="showTextInput()" style="
+                    background: #28a745; 
+                    color: white; 
+                    border: none; 
+                    padding: 10px 20px; 
+                    border-radius: 5px; 
+                    cursor: pointer;
+                    margin: 10px 5px;
+                ">✏️ Inserisci Manualmente</button>
+            `;
+            
+            extractedText.style.display = 'block';
+        }
+        
+        function tryManualExtraction() {
+            const textResults = document.getElementById('textResults');
+            const fullText = textResults ? textResults.textContent : '';
+            
+            // Prova con criteri più permissivi
+            const relaxedSerials = [];
+            const words = fullText.split(/\s+/);
+            
+            words.forEach(word => {
+                const clean = word.replace(/[^\w\-]/g, '');
+                if (clean.length >= 6) {
+                    relaxedSerials.push(`SN ${clean}`);
+                }
+            });
+            
+            if (relaxedSerials.length > 0) {
+                displayExtractedText(fullText, relaxedSerials);
+                showMessage(`🔍 Trovati ${relaxedSerials.length} possibili seriali con criteri estesi`);
+            } else {
+                showMessage('⚠️ Nessun seriale trovato. Prova l\'inserimento manuale.', true);
+            }
+        }
+        
+        function showTextInput() {
+            const textOptions = document.getElementById('textOptions');
+            if (!textOptions) return;
+            
+            textOptions.innerHTML = `
+                <div style="margin: 15px 0;">
+                    <input type="text" id="manualSerial" placeholder="Inserisci il numero seriale..." 
+                           style="width: 100%; padding: 10px; border: 2px solid #17a2b8; border-radius: 5px; margin-bottom: 10px;">
+                    <button onclick="useManualSerial()" style="
+                        background: #28a745; 
+                        color: white; 
+                        border: none; 
+                        padding: 10px 20px; 
+                        border-radius: 5px; 
+                        cursor: pointer;
+                        margin-right: 10px;
+                    ">✅ Usa Questo</button>
+                    <button onclick="closeCamera()" style="
+                        background: #6c757d; 
+                        color: white; 
+                        border: none; 
+                        padding: 10px 20px; 
+                        border-radius: 5px; 
+                        cursor: pointer;
+                    ">❌ Annulla</button>
+                </div>
+            `;
+            
+            // Focus sul campo di input
+            setTimeout(() => {
+                const input = document.getElementById('manualSerial');
+                if (input) input.focus();
+            }, 100);
+        }
+        
+        function useManualSerial() {
+            const input = document.getElementById('manualSerial');
+            if (!input) return;
+            
+            const serial = input.value.trim();
+            if (serial) {
+                const formattedSerial = serial.startsWith('SN ') ? serial : `SN ${serial}`;
+                selectSerial(formattedSerial);
+            } else {
+                showMessage('⚠️ Inserisci un numero seriale valido', true);
+            }
         }
         
         function displayExtractedText(fullText, serials) {
