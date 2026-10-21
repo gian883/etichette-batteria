@@ -15,6 +15,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+#expMsg{font-size:15px;color:var(--warn)}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:560px;margin:0 auto;padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left));display:grid;gap:12px}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -381,14 +382,29 @@ details .g{display:grid;gap:10px;margin-top:10px}
     const name=full?"CDPTR_tracciamento_"+new Date().toISOString().slice(0,10)+".csv":"CDPTR.csv";
     return new File(["\ufeff"+csv(full)],name,{type:"text/csv"});
   }
-  // Condivide il CSV (OneDrive, mail, WhatsApp...) senza salvarlo nei Download
-  async function share(full){
+  // Condivide il CSV (OneDrive, WhatsApp, mail...) senza salvarlo nei Download.
+  // Sceglie in modo sincrono la forma che il browser accetta, poi apre subito la finestra di condivisione.
+  function share(full){
     if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
-    const file=makeFile(full);
-    if(!(navigator.canShare&&navigator.canShare({files:[file]}))){
-      $("expMsg").textContent="Questo browser non permette di condividere file: apri la pagina in Chrome sul telefono, oppure usa Scarica.";return}
-    try{await navigator.share({files:[file],title:file.name});$("expMsg").textContent="Condiviso "+file.name+" ("+items.length+" seriali)."}
-    catch(e){$("expMsg").textContent=(e&&e.name==="AbortError")?"Condivisione annullata.":"Condivisione non riuscita: riprova o usa Scarica."}
+    if(!navigator.share){$("expMsg").textContent="Questo browser non ha la condivisione: apri la pagina in Chrome sul telefono, oppure usa Scarica.";return}
+    const name=full?"CDPTR_tracciamento_"+new Date().toISOString().slice(0,10)+".csv":"CDPTR.csv";
+    const body="\ufeff"+csv(full);
+    const tries=[
+      new File([body],name,{type:"text/csv"}),
+      new File([body],name,{type:"text/plain"}),
+      new File([body],name.replace(/\.csv$/,".txt"),{type:"text/plain"})
+    ];
+    let data=null;
+    if(navigator.canShare){for(const f of tries){try{if(navigator.canShare({files:[f]})){data={files:[f],title:f.name};break}}catch(e){}}}
+    else data={files:[tries[0]],title:name};
+    let asText=false;
+    if(!data){data={title:name,text:csv(full)};asText=true}
+    navigator.share(data).then(()=>{
+      $("expMsg").textContent=(asText?"Condiviso come testo ":"Condiviso ")+(data.files?data.files[0].name:name)+" ("+items.length+" seriali).";
+    }).catch(e=>{
+      if(e&&e.name==="AbortError"){$("expMsg").textContent="Condivisione annullata.";return}
+      $("expMsg").textContent="Condivisione non riuscita ("+(e&&e.name||"errore")+": "+(e&&e.message||"")+"). Usa Scarica e mandami questo messaggio.";
+    });
   }
   function download(full){
     if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
