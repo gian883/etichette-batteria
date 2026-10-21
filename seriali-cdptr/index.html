@@ -152,7 +152,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
 (function(){
   const $=id=>document.getElementById(id);
   const KEY="cdptr-seriali-v1", SET="cdptr-settings-v1";
-  const VERSION="11";
+  const VERSION="12";
   // GitHub Pages fa tenere al browser la pagina vecchia fino a 10 minuti: controlla se ce n'è una più nuova e ricarica
   (function(){
     const el=document.getElementById("ver");if(el)el.textContent="v"+VERSION;
@@ -504,7 +504,8 @@ details .g{display:grid;gap:10px;margin-top:10px}
   function fileName(full){
     const d=new Date(),z=n=>String(n).padStart(2,"0");
     const ts=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())+"_"+z(d.getHours())+"-"+z(d.getMinutes())+"-"+z(d.getSeconds());
-    return (full?"CDPTR_tracciamento_":"CDPTR_ptouch_")+ts+".csv";
+    // il CSV per P-touch ha sempre lo stesso nome, così resta collegato al modello di etichetta
+    return full?"CDPTR_tracciamento_"+ts+".csv":"cvs centralina di emergenza.csv";
   }
   function csv(full){
     const sep=$("sep").value,col=$("colName").value.trim()||"Seriale";
