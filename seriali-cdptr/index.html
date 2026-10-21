@@ -152,7 +152,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
 (function(){
   const $=id=>document.getElementById(id);
   const KEY="cdptr-seriali-v1", SET="cdptr-settings-v1";
-  const VERSION="10";
+  const VERSION="11";
   // GitHub Pages fa tenere al browser la pagina vecchia fino a 10 minuti: controlla se ce n'è una più nuova e ricarica
   (function(){
     const el=document.getElementById("ver");if(el)el.textContent="v"+VERSION;
@@ -500,6 +500,12 @@ details .g{display:grid;gap:10px;margin-top:10px}
   $("torchBtn").onclick=async()=>{torch=!torch;try{await track.applyConstraints({advanced:[{torch}]})}catch(e){}};
 
   // ---------- export ----------
+  // Nome sempre diverso (data e ora locali), così su OneDrive nessun file viene sovrascritto
+  function fileName(full){
+    const d=new Date(),z=n=>String(n).padStart(2,"0");
+    const ts=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())+"_"+z(d.getHours())+"-"+z(d.getMinutes())+"-"+z(d.getSeconds());
+    return (full?"CDPTR_tracciamento_":"CDPTR_ptouch_")+ts+".csv";
+  }
   function csv(full){
     const sep=$("sep").value,col=$("colName").value.trim()||"Seriale";
     const q=s=>/["\n;,]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;const L=[];
@@ -508,7 +514,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
     return L.join("\r\n")+"\r\n";
   }
   function makeFile(full){
-    const name=full?"CDPTR_tracciamento_"+new Date().toISOString().slice(0,10)+".csv":"CDPTR.csv";
+    const name=fileName(full);
     return new File(["\ufeff"+csv(full)],name,{type:"text/csv"});
   }
   // Condivide il CSV (OneDrive, WhatsApp, mail...) senza salvarlo nei Download.
@@ -516,7 +522,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
   function share(full){
     if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
     if(!navigator.share){$("expMsg").textContent="Questo browser non ha la condivisione: apri la pagina in Chrome sul telefono, oppure usa Scarica.";return}
-    const name=full?"CDPTR_tracciamento_"+new Date().toISOString().slice(0,10)+".csv":"CDPTR.csv";
+    const name=fileName(full);
     const body="\ufeff"+csv(full);
     const tries=[
       new File([body],name,{type:"text/csv"}),
