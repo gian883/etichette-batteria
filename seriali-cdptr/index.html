@@ -19,10 +19,18 @@ html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 h1{margin:0;font-size:19px}
 .sub{color:var(--muted);font-size:13px}
-.cam{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:12px;overflow:hidden;cursor:pointer}
+.cam{position:relative;width:100%;aspect-ratio:1/1;max-height:70vh;background:#000;border-radius:12px;overflow:hidden;cursor:pointer}
 .cam video{width:100%;height:100%;object-fit:cover;display:block}
-.guide{position:absolute;left:5%;right:5%;top:12%;bottom:12%;border:2px dashed rgba(255,255,255,.8);border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
-.guide span{position:absolute;left:0;right:0;top:-26px;text-align:center;font-size:13px;color:#fff;text-shadow:0 1px 3px #000}
+.guide{position:absolute;left:4%;right:4%;top:18%;bottom:18%;pointer-events:none}
+.guide i{position:absolute;width:28px;height:28px;border:4px solid var(--accent);filter:drop-shadow(0 0 2px rgba(0,0,0,.8))}
+.guide i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0;border-top-left-radius:8px}
+.guide i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0;border-top-right-radius:8px}
+.guide i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0;border-bottom-left-radius:8px}
+.guide i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0;border-bottom-right-radius:8px}
+.guide span{position:absolute;left:0;right:0;bottom:-28px;text-align:center;font-size:13px;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000}
+.camtools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.camtools label{flex:1 1 180px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.camtools input[type=range]{flex:1;accent-color:var(--accent)}
 .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .flash.on{opacity:.7;transition:none}
 .camover{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:#fff;font-size:15px;background:rgba(0,0,0,.6)}
@@ -66,7 +74,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
 
   <div class="cam" id="cam">
     <video id="video" playsinline muted autoplay></video>
-    <div class="guide" id="guide" hidden><span>Inquadra tutta l'etichetta</span></div>
+    <div class="guide" id="guide" hidden><i></i><i></i><i></i><i></i><span>Etichetta dentro gli angoli</span></div>
     <div class="flash" id="flash"></div>
     <div class="ready" id="ready" hidden></div>
     <div class="camover" id="camover"><button class="primary" id="startBtn">Avvia fotocamera</button></div>
@@ -74,7 +82,11 @@ details .g{display:grid;gap:10px;margin-top:10px}
 
   <button class="primary shoot" id="shootBtn" disabled>Scatta</button>
   <div class="toast" id="toast" hidden></div>
-  <div class="row"><button class="sm" id="torchBtn" hidden>Torcia</button></div>
+  <div class="camtools">
+    <button class="sm" id="torchBtn" hidden>Torcia</button>
+    <label id="expoBox" hidden>Luminosità <input type="range" id="expo" step="any"></label>
+    <label id="zoomBox" hidden>Zoom <input type="range" id="zoom" step="any"></label>
+  </div>
 
   <div class="panel">
     <div class="head"><h2>Seriali letti</h2></div>
@@ -237,6 +249,17 @@ details .g{display:grid;gap:10px;margin-top:10px}
   }
 
   // ---------- fotocamera ----------
+  // Cursori per luminosità (compensazione esposizione) e zoom, se il telefono li supporta
+  function setupSlider(id,boxId,cap,prop,key){
+    if(!cap||cap.max===undefined||cap.max<=cap.min) return;
+    const el=$(id);el.min=cap.min;el.max=cap.max;el.step=cap.step||((cap.max-cap.min)/40);
+    let val=prop==="zoom"?cap.min:0;
+    try{const s=parseFloat(localStorage.getItem(key));if(!isNaN(s))val=Math.min(cap.max,Math.max(cap.min,s))}catch(e){}
+    el.value=val;$(boxId).hidden=false;
+    const apply=async()=>{try{await track.applyConstraints({advanced:[{[prop]:parseFloat(el.value)}]});localStorage.setItem(key,el.value)}catch(e){}};
+    el.addEventListener("input",apply);
+    if(val!==(prop==="zoom"?cap.min:0)) apply();
+  }
   async function start(){
     $("camover").innerHTML="<span>Avvio fotocamera…</span>";
     initWorker().catch(()=>{});
@@ -251,7 +274,14 @@ details .g{display:grid;gap:10px;margin-top:10px}
     track=stream.getVideoTracks()[0];
     try{const c=track.getCapabilities?track.getCapabilities():{};
       if(c.torch)$("torchBtn").hidden=false;
-      if(c.focusMode&&c.focusMode.includes("continuous")) await track.applyConstraints({advanced:[{focusMode:"continuous"}]});}catch(e){}
+      const adv={};
+      if(c.focusMode&&c.focusMode.includes("continuous")) adv.focusMode="continuous";
+      if(c.exposureMode&&c.exposureMode.includes("continuous")) adv.exposureMode="continuous";
+      if(c.whiteBalanceMode&&c.whiteBalanceMode.includes("continuous")) adv.whiteBalanceMode="continuous";
+      if(Object.keys(adv).length) await track.applyConstraints({advanced:[adv]});
+      setupSlider("expo","expoBox",c.exposureCompensation,"exposureCompensation","cdptr-expo");
+      setupSlider("zoom","zoomBox",c.zoom,"zoom","cdptr-zoom");
+    }catch(e){}
     $("camover").hidden=true;$("guide").hidden=false;
     try{localStorage.setItem("cdptr-cam-ok","1")}catch(e){}
     updateShoot();
