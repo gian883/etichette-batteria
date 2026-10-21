@@ -73,7 +73,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
 <div class="wrap">
   <div class="top">
     <h1>Seriali CDPTR</h1>
-    <span class="sub" id="count">0 pezzi</span>
+    <span class="sub"><span id="count">0 pezzi</span> · <span id="ver"></span></span>
   </div>
 
   <div class="cam" id="cam">
@@ -138,6 +138,18 @@ details .g{display:grid;gap:10px;margin-top:10px}
 (function(){
   const $=id=>document.getElementById(id);
   const KEY="cdptr-seriali-v1", SET="cdptr-settings-v1";
+  const VERSION="9";
+  // GitHub Pages fa tenere al browser la pagina vecchia fino a 10 minuti: controlla se ce n'è una più nuova e ricarica
+  (function(){
+    const el=document.getElementById("ver");if(el)el.textContent="v"+VERSION;
+    fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
+      const m=t.match(/const VERSION="([^"]+)"/);
+      if(m&&m[1]!==VERSION){
+        let tried="";try{tried=sessionStorage.getItem("cdptr-upd")||""}catch(e){}
+        if(tried!==m[1]){try{sessionStorage.setItem("cdptr-upd",m[1])}catch(e){}location.reload()}
+      }
+    }).catch(()=>{});
+  })();
   let items=[];            // {sn,t}
   let pending=[];          // {id,canvas}
   let worker=null, workerReady=null, track=null, torch=false, processing=false, seq=0, toastTimer=null;
