@@ -14,6 +14,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:560px;margin:0 auto;padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left));display:grid;gap:12px}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -278,7 +279,9 @@ details .g{display:grid;gap:10px;margin-top:10px}
       if(c.focusMode&&c.focusMode.includes("continuous")) adv.focusMode="continuous";
       if(c.exposureMode&&c.exposureMode.includes("continuous")) adv.exposureMode="continuous";
       if(c.whiteBalanceMode&&c.whiteBalanceMode.includes("continuous")) adv.whiteBalanceMode="continuous";
-      if(Object.keys(adv).length) await track.applyConstraints({advanced:[adv]});
+      // misura luce e messa a fuoco al centro del riquadro (dove sta l'etichetta)
+      if(c.pointsOfInterest!==undefined||"pointsOfInterest" in (navigator.mediaDevices.getSupportedConstraints?navigator.mediaDevices.getSupportedConstraints():{})) adv.pointsOfInterest=[{x:0.5,y:0.5}];
+      if(Object.keys(adv).length){try{await track.applyConstraints({advanced:[adv]})}catch(e){delete adv.pointsOfInterest;try{await track.applyConstraints({advanced:[adv]})}catch(e2){}}}
       setupSlider("expo","expoBox",c.exposureCompensation,"exposureCompensation","cdptr-expo");
       setupSlider("zoom","zoomBox",c.zoom,"zoom","cdptr-zoom");
     }catch(e){}
