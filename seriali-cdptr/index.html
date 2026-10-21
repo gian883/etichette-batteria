@@ -98,6 +98,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
       <div class="g">
         <label>Nome colonna seriale (come nel modello P-touch)<input type="text" id="colName" value="Seriale"></label>
         <label>Separatore<select id="sep"><option value=";">Punto e virgola ( ; ) — Excel italiano</option><option value=",">Virgola ( , )</option></select></label>
+        <label><span><input type="checkbox" id="prefix" checked> Scrivi "S/N" davanti al seriale (es. S/N 160/14)</span></label>
         <label><span><input type="checkbox" id="header" checked> Includi riga di intestazione</span></label>
       </div>
     </details>
@@ -120,9 +121,9 @@ details .g{display:grid;gap:10px;margin-top:10px}
 
   // ---------- dati ----------
   function load(){try{items=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){items=[]}
-    try{const s=JSON.parse(localStorage.getItem(SET));if(s){$("colName").value=s.col||"Seriale";$("sep").value=s.sep||";";$("header").checked=s.header!==false}}catch(e){}}
+    try{const s=JSON.parse(localStorage.getItem(SET));if(s){$("colName").value=s.col||"Seriale";$("sep").value=s.sep||";";$("header").checked=s.header!==false;$("prefix").checked=s.prefix!==false}}catch(e){}}
   const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}};
-  const persistSet=()=>{try{localStorage.setItem(SET,JSON.stringify({col:$("colName").value,sep:$("sep").value,header:$("header").checked}))}catch(e){}};
+  const persistSet=()=>{try{localStorage.setItem(SET,JSON.stringify({col:$("colName").value,sep:$("sep").value,header:$("header").checked,prefix:$("prefix").checked}))}catch(e){}};
 
   // Seriale: solo cifre, "/" opzionale. Corregge lettere lette al posto di cifre.
   function normalize(raw){
@@ -131,6 +132,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
     return s.replace(/[OQD]/g,"0").replace(/[IL!]/g,"1").replace(/S/g,"5").replace(/B/g,"8").replace(/Z/g,"2").replace(/G/g,"6");
   }
   const valid=s=>/^\d+(\/\d+)?$/.test(s);
+  const label=sn=>($("prefix").checked?"S/N ":"")+sn;
   // "S/N" viene letto a volte come "SIN", "Q/N", "5/N": accettati tutti
   const D="[0-9OILD]";
   const RE_SN=new RegExp("(?:^|[^A-Z0-9])[SQ5$8][\\s/\\\\|I1L]{0,2}N\\s*[:.]?\\s*("+D+"+(?:\\s*[/\\\\|]\\s*"+D+"+)?)");
@@ -164,7 +166,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
     for(let i=items.length-1;i>=0;i--){
       const it=items[i],li=document.createElement("li");
       const n=document.createElement("span");n.className="idx";n.textContent=i+1;
-      const s=document.createElement("span");s.className="serial";s.textContent=it.sn;
+      const s=document.createElement("span");s.className="serial";s.textContent=label(it.sn);
       const e=document.createElement("button");e.className="sm";e.textContent="Modifica";
       const d=document.createElement("button");d.className="sm del";d.textContent="Elimina";
       e.onclick=()=>{
@@ -173,16 +175,16 @@ details .g{display:grid;gap:10px;margin-top:10px}
         const done=()=>{const v=normalize(inp.value);if(valid(v)){items[i].sn=v;persist()}else toast("Formato non valido: solo cifre, con eventuale \"/\".","err");render()};
         inp.onblur=done;inp.onkeydown=ev=>{if(ev.key==="Enter")inp.blur()};
       };
-      d.onclick=()=>{const rem=items.splice(i,1)[0];persist();render();toast("Eliminato <b>"+esc(rem.sn)+"</b>","",()=>{items.splice(i,0,rem);persist();render()})};
+      d.onclick=()=>{const rem=items.splice(i,1)[0];persist();render();toast("Eliminato <b>"+esc(label(rem.sn))+"</b>","",()=>{items.splice(i,0,rem);persist();render()})};
       li.append(n,s,e,d);ol.appendChild(li);
     }
   }
 
   function addSerial(v,source){
-    if(items.some(x=>x.sn===v)){buzz([80,80,80]);toast("<b>"+esc(v)+"</b> è già nella lista: non aggiunto.","warn");return false}
+    if(items.some(x=>x.sn===v)){buzz([80,80,80]);toast("<b>"+esc(label(v))+"</b> è già nella lista: non aggiunto.","warn");return false}
     items.push({sn:v,t:Date.now()});persist();render();buzz(60);
     const idx=items.length-1;
-    toast("Aggiunto <b>"+esc(v)+"</b>","ok",()=>{if(items[idx]&&items[idx].sn===v){items.splice(idx,1);persist();render()}});
+    toast("Aggiunto <b>"+esc(label(v))+"</b>","ok",()=>{if(items[idx]&&items[idx].sn===v){items.splice(idx,1);persist();render()}});
     return true;
   }
   $("manualBtn").onclick=()=>{const v=normalize($("manual").value);if(!valid(v)){toast("Formato non valido: solo cifre, con eventuale \"/\" (es. 160/14 o 1602).","err");return}if(addSerial(v))$("manual").value=""};
@@ -282,8 +284,8 @@ details .g{display:grid;gap:10px;margin-top:10px}
   function csv(full){
     const sep=$("sep").value,col=$("colName").value.trim()||"Seriale";
     const q=s=>/["\n;,]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;const L=[];
-    if(full){L.push(["N",col,"Data","Ora"].join(sep));items.forEach((it,i)=>{const d=new Date(it.t);L.push([i+1,q(it.sn),d.toLocaleDateString("it-IT"),d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})].join(sep))})}
-    else{if($("header").checked)L.push(q(col));items.forEach(it=>L.push(q(it.sn)))}
+    if(full){L.push(["N",col,"Data","Ora"].join(sep));items.forEach((it,i)=>{const d=new Date(it.t);L.push([i+1,q(label(it.sn)),d.toLocaleDateString("it-IT"),d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})].join(sep))})}
+    else{if($("header").checked)L.push(q(col));items.forEach(it=>L.push(q(label(it.sn))))}
     return L.join("\r\n")+"\r\n";
   }
   async function exp(full){
@@ -297,7 +299,8 @@ details .g{display:grid;gap:10px;margin-top:10px}
   }
   $("expPt").onclick=()=>exp(false);
   $("expFull").onclick=()=>exp(true);
-  ["colName","sep","header"].forEach(id=>$(id).addEventListener("change",persistSet));
+  ["colName","sep","header","prefix"].forEach(id=>$(id).addEventListener("change",persistSet));
+  $("prefix").addEventListener("change",render);
   $("resetBtn").onclick=()=>{if(!items.length)return;$("confirmN").textContent=items.length;$("confirmBox").hidden=false};
   $("confirmNo").onclick=()=>$("confirmBox").hidden=true;
   $("confirmYes").onclick=()=>{items=[];persist();render();$("confirmBox").hidden=true;$("expMsg").textContent="Lista svuotata."};
