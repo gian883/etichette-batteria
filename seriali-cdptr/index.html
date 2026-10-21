@@ -32,6 +32,8 @@ h1{margin:0;font-size:19px}
 .camtools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .camtools label{flex:1 1 180px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .camtools input[type=range]{flex:1;accent-color:var(--accent)}
+.camtools select{flex:1;padding:6px}
+#macroBtn.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .flash.on{opacity:.7;transition:none}
 .camover{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:#fff;font-size:15px;background:rgba(0,0,0,.6)}
@@ -87,6 +89,9 @@ details .g{display:grid;gap:10px;margin-top:10px}
     <button class="sm" id="torchBtn" hidden>Torcia</button>
     <label id="expoBox" hidden>Luminosità <input type="range" id="expo" step="any"></label>
     <label id="zoomBox" hidden>Zoom <input type="range" id="zoom" step="any"></label>
+    <button class="sm" id="macroBtn" hidden>Macro</button>
+    <label id="focusBox" hidden>Fuoco <input type="range" id="focus" step="any"></label>
+    <label id="camSelBox" hidden>Obiettivo <select id="camSel"></select></label>
   </div>
 
   <div class="panel">
@@ -258,22 +263,27 @@ details .g{display:grid;gap:10px;margin-top:10px}
     try{const s=parseFloat(localStorage.getItem(key));if(!isNaN(s))val=Math.min(cap.max,Math.max(cap.min,s))}catch(e){}
     el.value=val;$(boxId).hidden=false;
     const apply=async()=>{try{await track.applyConstraints({advanced:[{[prop]:parseFloat(el.value)}]});localStorage.setItem(key,el.value)}catch(e){}};
-    el.addEventListener("input",apply);
+    el.oninput=apply;
     if(val!==(prop==="zoom"?cap.min:0)) apply();
   }
-  async function start(){
-    $("camover").innerHTML="<span>Avvio fotocamera…</span>";
+  let macro=false, caps={};
+  async function start(deviceId){
+    if(typeof deviceId!=="string"){try{deviceId=localStorage.getItem("cdptr-cam")||""}catch(e){deviceId=""}}
+    $("camover").hidden=false;$("camover").innerHTML="<span>Avvio fotocamera…</span>";
     initWorker().catch(()=>{});
+    if(track){try{track.stop()}catch(e){}track=null;updateShoot()}
     let stream;
+    const base={width:{ideal:1920},height:{ideal:1440}};
     try{
-      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1440}},audio:false});
+      stream=await navigator.mediaDevices.getUserMedia({video:deviceId?{...base,deviceId:{exact:deviceId}}:{...base,facingMode:{ideal:"environment"}},audio:false});
     }catch(e){
+      if(deviceId){try{localStorage.removeItem("cdptr-cam")}catch(e2){} return start("")}
       $("camover").innerHTML="<span>Fotocamera non disponibile. Apri la pagina in Chrome, consenti l'accesso alla fotocamera e ricarica.</span>";
       return;
     }
     const v=$("video");v.srcObject=stream;try{await v.play()}catch(e){}
-    track=stream.getVideoTracks()[0];
-    try{const c=track.getCapabilities?track.getCapabilities():{};
+    track=stream.getVideoTracks()[0];macro=false;$("macroBtn").classList.remove("on");$("focusBox").hidden=true;
+    try{const c=track.getCapabilities?track.getCapabilities():{};caps=c;
       if(c.torch)$("torchBtn").hidden=false;
       const adv={};
       if(c.focusMode&&c.focusMode.includes("continuous")) adv.focusMode="continuous";
@@ -285,12 +295,54 @@ details .g{display:grid;gap:10px;margin-top:10px}
       setupSlider("expo","expoBox",c.exposureCompensation,"exposureCompensation","cdptr-expo");
       setupSlider("zoom","zoomBox",c.zoom,"zoom","cdptr-zoom");
     }catch(e){}
+    await listCameras();
     $("camover").hidden=true;$("guide").hidden=false;
     try{localStorage.setItem("cdptr-cam-ok","1")}catch(e){}
     updateShoot();
   }
+  // Elenco degli obiettivi posteriori (normale, grandangolo, tele, macro...) visibili al browser
+  let cams=[];
+  async function listCameras(){
+    try{
+      const all=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput");
+      cams=all.filter(d=>!/front|anteriore|user|facing front/i.test(d.label));
+      if(!cams.length) cams=all;
+      const sel=$("camSel");sel.textContent="";
+      const cur=track&&track.getSettings?track.getSettings().deviceId:"";
+      cams.forEach((d,i)=>{const o=document.createElement("option");o.value=d.deviceId;
+        o.textContent=(/macro/i.test(d.label)?"Macro – ":"")+(d.label||("Obiettivo "+(i+1)));if(d.deviceId===cur)o.selected=true;sel.appendChild(o)});
+      $("camSelBox").hidden=cams.length<2;
+    }catch(e){}
+    const hasFocus=caps.focusDistance&&caps.focusDistance.max>caps.focusDistance.min&&caps.focusMode&&caps.focusMode.includes("manual");
+    $("macroBtn").hidden=!(hasFocus||cams.some(d=>/macro/i.test(d.label))||cams.length>1);
+  }
+  $("camSel").onchange=()=>{const id=$("camSel").value;try{localStorage.setItem("cdptr-cam",id)}catch(e){}start(id)};
+
+  // Macro: obiettivo macro se il telefono lo espone, altrimenti messa a fuoco manuale alla distanza minima
+  $("macroBtn").onclick=async()=>{
+    const mc=cams.find(d=>/macro/i.test(d.label));
+    const cur=track&&track.getSettings?track.getSettings().deviceId:"";
+    if(mc&&mc.deviceId!==cur){try{localStorage.setItem("cdptr-cam",mc.deviceId)}catch(e){}await start(mc.deviceId);$("macroBtn").classList.add("on");macro=true;toast("Obiettivo macro attivo: avvicinati a 3–5 cm.","ok");return}
+    const fd=caps.focusDistance;
+    if(fd&&fd.max>fd.min&&caps.focusMode&&caps.focusMode.includes("manual")){
+      macro=!macro;$("macroBtn").classList.toggle("on",macro);
+      if(macro){
+        const el=$("focus");el.min=fd.min;el.max=fd.max;el.step=fd.step||((fd.max-fd.min)/50);el.value=fd.min;$("focusBox").hidden=false;
+        const apply=async()=>{try{await track.applyConstraints({advanced:[{focusMode:"manual",focusDistance:parseFloat(el.value)}]})}catch(e){}};
+        el.oninput=apply;await apply();
+        toast("Macro attiva: fuoco ravvicinato. Avvicinati e regola il cursore Fuoco se serve.","ok");
+      }else{
+        $("focusBox").hidden=true;try{await track.applyConstraints({advanced:[{focusMode:"continuous"}]})}catch(e){}
+        toast("Messa a fuoco automatica.","");
+      }
+      return;
+    }
+    if(cams.length>1){$("camSelBox").hidden=false;toast("Il telefono non indica quale obiettivo è il macro: provali dalla lista Obiettivo.","warn");return}
+    toast("Il telefono non rende disponibile la macro al browser. Usa lo zoom da 8–10 cm di distanza.","warn");
+  };
+
   function updateShoot(){ $("shootBtn").disabled=!(track&&track.readyState==="live") }
-  $("startBtn").onclick=start;
+  $("startBtn").onclick=()=>start();
 
   function grab(){
     const v=$("video"),cam=$("cam").getBoundingClientRect(),g=$("guide").getBoundingClientRect();
