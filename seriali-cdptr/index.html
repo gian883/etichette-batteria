@@ -89,8 +89,12 @@ details .g{display:grid;gap:10px;margin-top:10px}
   <div class="panel">
     <h2>Esporta</h2>
     <div class="row">
-      <button class="primary" id="expPt">CSV per P-touch</button>
-      <button id="expFull">CSV tracciamento</button>
+      <button class="primary" id="shPt">Condividi CSV P-touch</button>
+      <button class="primary" id="shFull">Condividi CSV tracciamento</button>
+    </div>
+    <div class="row">
+      <button class="sm" id="expPt">Scarica P-touch</button>
+      <button class="sm" id="expFull">Scarica tracciamento</button>
     </div>
     <div class="sub" id="expMsg"></div>
     <details>
@@ -288,17 +292,29 @@ details .g{display:grid;gap:10px;margin-top:10px}
     else{if($("header").checked)L.push(q(col));items.forEach(it=>L.push(q(label(it.sn))))}
     return L.join("\r\n")+"\r\n";
   }
-  async function exp(full){
-    if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
+  function makeFile(full){
     const name=full?"CDPTR_tracciamento_"+new Date().toISOString().slice(0,10)+".csv":"CDPTR.csv";
-    const file=new File(["﻿"+csv(full)],name,{type:"text/csv"});
-    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});$("expMsg").textContent="Inviato "+name+".";return}}
-    catch(e){if(e&&e.name==="AbortError"){$("expMsg").textContent="Invio annullato.";return}}
-    const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();a.remove();
-    $("expMsg").textContent="Scaricato "+name+" ("+items.length+" seriali).";
+    return new File(["\ufeff"+csv(full)],name,{type:"text/csv"});
   }
-  $("expPt").onclick=()=>exp(false);
-  $("expFull").onclick=()=>exp(true);
+  // Condivide il CSV (OneDrive, mail, WhatsApp...) senza salvarlo nei Download
+  async function share(full){
+    if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
+    const file=makeFile(full);
+    if(!(navigator.canShare&&navigator.canShare({files:[file]}))){
+      $("expMsg").textContent="Questo browser non permette di condividere file: apri la pagina in Chrome sul telefono, oppure usa Scarica.";return}
+    try{await navigator.share({files:[file],title:file.name});$("expMsg").textContent="Condiviso "+file.name+" ("+items.length+" seriali)."}
+    catch(e){$("expMsg").textContent=(e&&e.name==="AbortError")?"Condivisione annullata.":"Condivisione non riuscita: riprova o usa Scarica."}
+  }
+  function download(full){
+    if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
+    const file=makeFile(full);
+    const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=file.name;document.body.appendChild(a);a.click();a.remove();
+    $("expMsg").textContent="Scaricato "+file.name+" ("+items.length+" seriali).";
+  }
+  $("shPt").onclick=()=>share(false);
+  $("shFull").onclick=()=>share(true);
+  $("expPt").onclick=()=>download(false);
+  $("expFull").onclick=()=>download(true);
   ["colName","sep","header","prefix"].forEach(id=>$(id).addEventListener("change",persistSet));
   $("prefix").addEventListener("change",render);
   $("resetBtn").onclick=()=>{if(!items.length)return;$("confirmN").textContent=items.length;$("confirmBox").hidden=false};
