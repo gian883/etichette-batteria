@@ -158,11 +158,13 @@ details .g{display:grid;gap:10px;margin-top:10px}
   const label=sn=>($("prefix").checked?"S/N ":"")+sn;
   // "S/N" viene letto a volte come "SIN", "Q/N", "5/N": accettati tutti
   const D="[0-9OILD]";
-  const RE_SN=new RegExp("(?:^|[^A-Z0-9])[SQ5$8][\\s/\\\\|I1L]{0,2}N\\s*[:.]?\\s*("+D+"+(?:\\s*[/\\\\|]\\s*"+D+"+)?)");
+  // Dopo "S/N": primo gruppo di cifre, poi (sulla stessa riga) un eventuale secondo gruppo
+  // separato da "/" oppure solo da spazi: la barra sottile spesso non viene letta ("S/N 131  /13" -> "SIN 131 13")
+  const RE_SN=new RegExp("(?:^|[^A-Z0-9])[SQ5$8][ \\t/\\\\|I1L]{0,2}N[ \\t]*[:.]?[ \\t]*("+D+"+)(?:([ \\t]*[/\\\\|\\-\u2013][ \\t]*|[ \\t]+)("+D+"{1,6}))?");
   function extract(text){
-    const m=String(text||"").toUpperCase().replace(/\n/g," ").match(RE_SN);
+    const m=String(text||"").toUpperCase().match(RE_SN);
     if(!m) return "";
-    const v=normalize(m[1]);
+    const v=normalize(m[1]+(m[3]?"/"+m[3]:""));
     return valid(v)?v:"";
   }
 
