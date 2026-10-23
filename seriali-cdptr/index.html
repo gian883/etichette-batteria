@@ -74,15 +74,38 @@ details .g{display:grid;gap:10px;margin-top:10px}
 #revInput.bad{border-color:var(--err);background:var(--err-bg)}
 .note{font-size:14px;min-height:1.2em;color:var(--muted)}.note.err{color:var(--err)}.note.warn{color:var(--warn)}
 .autoadd{display:block}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tabs button{min-height:44px;padding:6px 4px;font-size:15px}
+.tabs button.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.tag{display:inline-block;font-family:system-ui,sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 6px;margin-right:6px;border-radius:99px;border:1px solid var(--line);color:var(--muted);vertical-align:middle}
+.prog{display:flex;gap:8px;align-items:center}
+.prog input{flex:1;min-width:0;font:inherit;font-family:var(--mono);font-size:22px;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+#ocrBox{display:grid;gap:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>Seriali CDPTR</h1>
+    <h1>Seriali <span id="modeName">CDPTR</span></h1>
     <span class="sub"><span id="count">0 pezzi</span> · <span id="ver"></span></span>
   </div>
 
+  <div class="tabs" id="tabs">
+    <button data-k="cdptr">CDPTR</button>
+    <button data-k="mobad">MOBAD</button>
+    <button data-k="12max05">12MAX05</button>
+  </div>
+
+  <div class="panel" id="progPanel" hidden>
+    <div class="head"><h2>Numerazione progressiva</h2><span class="sub" id="progCat"></span></div>
+    <button class="primary shoot" id="progBtn">Aggiungi</button>
+    <label>Ultimo SN già usato — cambialo se nel frattempo qualcun altro ha proseguito la numerazione
+      <div class="prog"><span class="sub">SN</span><input type="text" id="progLast" inputmode="numeric" autocomplete="off"><button class="sm" id="progSave">Salva</button></div>
+    </label>
+    <div class="note" id="progMsg"></div>
+  </div>
+
+  <div id="ocrBox">
   <div class="cam" id="cam">
     <video id="video" playsinline muted autoplay></video>
     <div class="guide" id="guide" hidden><i></i><i></i><i></i><i></i><span>Etichetta dentro gli angoli</span></div>
@@ -108,12 +131,13 @@ details .g{display:grid;gap:10px;margin-top:10px}
     <label id="focusBox" hidden>Fuoco <input type="range" id="focus" step="any"></label>
     <label id="camSelBox" hidden>Obiettivo <select id="camSel"></select></label>
   </div>
+  </div>
 
   <div class="panel">
     <div class="head"><h2>Seriali letti</h2></div>
     <ol id="list"></ol>
     <div class="sub" id="empty">Nessun seriale ancora: inquadra un'etichetta e premi Scatta.</div>
-    <div class="manual">
+    <div class="manual" id="manualBox">
       <input type="text" id="manual" placeholder="Aggiungi a mano (es. 160/14)" autocomplete="off" autocapitalize="off" spellcheck="false">
       <button class="sm" id="manualBtn">Aggiungi</button>
     </div>
@@ -123,19 +147,20 @@ details .g{display:grid;gap:10px;margin-top:10px}
     <h2>Esporta</h2>
     <div class="row">
       <button class="primary" id="shPt">Condividi CSV P-touch</button>
-      <button class="primary" id="shFull">Condividi CSV tracciamento</button>
+      <button class="primary" id="shFull">Condividi CSV tracciamento (tutti)</button>
     </div>
     <div class="row">
       <button class="sm" id="expPt">Scarica P-touch</button>
-      <button class="sm" id="expFull">Scarica tracciamento</button>
+      <button class="sm" id="expFull">Scarica tracciamento (tutti)</button>
     </div>
+    <div class="sub" id="ptInfo"></div>
     <div class="sub" id="expMsg"></div>
     <details>
       <summary>Impostazioni CSV</summary>
       <div class="g">
         <label>Nome colonna seriale (come nel modello P-touch)<input type="text" id="colName" value="Seriale"></label>
         <label>Separatore<select id="sep"><option value=";">Punto e virgola ( ; ) — Excel italiano</option><option value=",">Virgola ( , )</option></select></label>
-        <label><span><input type="checkbox" id="prefix" checked> Scrivi "S/N" davanti al seriale (es. S/N 160/14)</span></label>
+        <label><span><input type="checkbox" id="prefix" checked> CDPTR: scrivi "S/N" davanti al seriale (es. S/N 160/14). MOBAD e 12MAX05 hanno sempre "SN"</span></label>
         <label><span><input type="checkbox" id="header" checked> Includi riga di intestazione</span></label>
       </div>
     </details>
@@ -152,7 +177,15 @@ details .g{display:grid;gap:10px;margin-top:10px}
 (function(){
   const $=id=>document.getElementById(id);
   const KEY="cdptr-seriali-v1", SET="cdptr-settings-v1";
-  const VERSION="12";
+  const VERSION="13";
+  // Apparecchiature: CDPTR legge il seriale dall'etichetta, MOBAD e 12MAX05 hanno un numero progressivo
+  const CATS={
+    cdptr:{name:"CDPTR",cat:"563/919",file:"cvs centralina di emergenza.csv",prog:false},
+    mobad:{name:"MOBAD",cat:"563/494",file:"mobad.csv",prog:true,start:93},
+    "12max05":{name:"12MAX05",cat:"561/073",file:"scheda.csv",prog:true,start:175}
+  };
+  const PROG="cdptr-prog-v1";
+  let mode="cdptr", prog={};
   // GitHub Pages fa tenere al browser la pagina vecchia fino a 10 minuti: controlla se ce n'è una più nuova e ricarica
   (function(){
     const el=document.getElementById("ver");if(el)el.textContent="v"+VERSION;
@@ -164,15 +197,19 @@ details .g{display:grid;gap:10px;margin-top:10px}
       }
     }).catch(()=>{});
   })();
-  let items=[];            // {sn,t}
+  let items=[];            // {sn,t,k}  k = apparecchiatura (manca nei dati vecchi = cdptr)
   let pending=[];          // {id,canvas}
   let worker=null, workerReady=null, track=null, torch=false, processing=false, seq=0, toastTimer=null;
 
   // ---------- dati ----------
   function load(){try{items=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){items=[]}
-    try{const s=JSON.parse(localStorage.getItem(SET));if(s){$("colName").value=s.col||"Seriale";$("sep").value=s.sep||";";$("header").checked=s.header!==false;$("prefix").checked=s.prefix!==false;$("autoAdd").checked=!!s.autoAdd}}catch(e){}}
+    items.forEach(it=>{if(!CATS[it.k])it.k="cdptr"});
+    try{prog=JSON.parse(localStorage.getItem(PROG))||{}}catch(e){prog={}}
+    Object.keys(CATS).forEach(k=>{if(CATS[k].prog&&!(prog[k]>=0))prog[k]=CATS[k].start});
+    try{const s=JSON.parse(localStorage.getItem(SET));if(s){if(CATS[s.mode])mode=s.mode;$("colName").value=s.col||"Seriale";$("sep").value=s.sep||";";$("header").checked=s.header!==false;$("prefix").checked=s.prefix!==false;$("autoAdd").checked=!!s.autoAdd}}catch(e){}}
   const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}};
-  const persistSet=()=>{try{localStorage.setItem(SET,JSON.stringify({col:$("colName").value,sep:$("sep").value,header:$("header").checked,prefix:$("prefix").checked,autoAdd:$("autoAdd").checked}))}catch(e){}};
+  const persistProg=()=>{try{localStorage.setItem(PROG,JSON.stringify(prog))}catch(e){}};
+  const persistSet=()=>{try{localStorage.setItem(SET,JSON.stringify({mode,col:$("colName").value,sep:$("sep").value,header:$("header").checked,prefix:$("prefix").checked,autoAdd:$("autoAdd").checked}))}catch(e){}};
 
   // Seriale: solo cifre, "/" opzionale. Corregge lettere lette al posto di cifre.
   function normalize(raw){
@@ -181,7 +218,8 @@ details .g{display:grid;gap:10px;margin-top:10px}
     return s.replace(/[OQD]/g,"0").replace(/[IL!]/g,"1").replace(/S/g,"5").replace(/B/g,"8").replace(/Z/g,"2").replace(/G/g,"6");
   }
   const valid=s=>/^\d+(\/\d+)?$/.test(s);
-  const label=sn=>($("prefix").checked?"S/N ":"")+sn;
+  const label=(sn,k)=>CATS[k||mode].prog?"SN "+sn:($("prefix").checked?"S/N ":"")+sn;
+  const has=(sn,k)=>items.some(x=>x.sn===sn&&x.k===k);
   // "S/N" viene letto a volte come "SIN", "Q/N", "5/N": accettati tutti
   const D="[0-9OILD]";
   // Dopo "S/N": primo gruppo di cifre, poi (sulla stessa riga) un eventuale secondo gruppo
@@ -243,28 +281,74 @@ details .g{display:grid;gap:10px;margin-top:10px}
     for(let i=items.length-1;i>=0;i--){
       const it=items[i],li=document.createElement("li");
       const n=document.createElement("span");n.className="idx";n.textContent=i+1;
-      const s=document.createElement("span");s.className="serial";s.textContent=label(it.sn);
+      const s=document.createElement("span");s.className="serial";
+      const tg=document.createElement("span");tg.className="tag";tg.textContent=CATS[it.k].name;s.append(tg,document.createTextNode(label(it.sn,it.k)));
       const e=document.createElement("button");e.className="sm";e.textContent="Modifica";
       const d=document.createElement("button");d.className="sm del";d.textContent="Elimina";
       e.onclick=()=>{
         const inp=document.createElement("input");inp.value=it.sn;inp.setAttribute("autocapitalize","off");
         s.replaceWith(inp);inp.focus();inp.select();
-        const done=()=>{const v=normalize(inp.value);if(valid(v)){items[i].sn=v;persist()}else toast("Formato non valido: solo cifre, con eventuale \"/\".","err");render()};
+        const done=()=>{const v=normalize(inp.value);const ok=CATS[it.k].prog?/^\d+$/.test(v):valid(v);if(ok){items[i].sn=v;persist()}else toast(CATS[it.k].prog?"Solo cifre (es. 94).":"Formato non valido: solo cifre, con eventuale \"/\".","err");render()};
         inp.onblur=done;inp.onkeydown=ev=>{if(ev.key==="Enter")inp.blur()};
       };
-      d.onclick=()=>{const rem=items.splice(i,1)[0];persist();render();toast("Eliminato <b>"+esc(label(rem.sn))+"</b>","",()=>{items.splice(i,0,rem);persist();render()})};
+      d.onclick=()=>{
+        const rem=items.splice(i,1)[0];
+        // se elimini l'ultimo progressivo assegnato, il numero torna libero
+        const back=CATS[rem.k].prog&&+rem.sn===prog[rem.k];
+        if(back){prog[rem.k]--;persistProg()}
+        persist();render();
+        toast("Eliminato <b>"+esc(CATS[rem.k].name+" "+label(rem.sn,rem.k))+"</b>"+(back?" — il prossimo sarà di nuovo SN "+rem.sn:""),"",()=>{items.splice(i,0,rem);if(back){prog[rem.k]++;persistProg()}persist();render()});
+      };
       li.append(n,s,e,d);ol.appendChild(li);
     }
+    renderMode();
   }
 
-  function addSerial(v,source){
-    if(items.some(x=>x.sn===v)){buzz([80,80,80]);toast("<b>"+esc(label(v))+"</b> è già nella lista: non aggiunto.","warn");return false}
-    items.push({sn:v,t:Date.now()});persist();render();buzz(60);
+  function addSerial(v,k,onUndo){
+    k=k||"cdptr";
+    if(has(v,k)){buzz([80,80,80]);toast("<b>"+esc(CATS[k].name+" "+label(v,k))+"</b> è già nella lista: non aggiunto.","warn");return false}
+    items.push({sn:v,t:Date.now(),k});persist();render();buzz(60);
     const idx=items.length-1;
-    toast("Aggiunto <b>"+esc(label(v))+"</b>","ok",()=>{if(items[idx]&&items[idx].sn===v){items.splice(idx,1);persist();render()}});
+    toast("Aggiunto <b>"+esc(CATS[k].name+" "+label(v,k))+"</b>","ok",()=>{if(items[idx]&&items[idx].sn===v&&items[idx].k===k){items.splice(idx,1);onUndo&&onUndo();persist();render()}});
     return true;
   }
-  $("manualBtn").onclick=()=>{const v=normalize($("manual").value);if(!valid(v)){toast("Formato non valido: solo cifre, con eventuale \"/\" (es. 160/14 o 1602).","err");return}if(addSerial(v))$("manual").value=""};
+
+  // ---------- apparecchiature e numerazione progressiva ----------
+  function renderMode(){
+    const c=CATS[mode];
+    $("modeName").textContent=c.name;
+    document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.k===mode));
+    $("ocrBox").hidden=c.prog;$("manualBox").hidden=c.prog;$("progPanel").hidden=!c.prog;
+    $("empty").textContent=c.prog?"Nessun pezzo ancora: premi Aggiungi.":"Nessun seriale ancora: inquadra un'etichetta e premi Scatta.";
+    const n=items.filter(x=>x.k===mode).length;
+    $("shPt").textContent="Condividi CSV P-touch "+c.name;
+    $("expPt").textContent="Scarica P-touch "+c.name;
+    $("ptInfo").textContent="P-touch "+c.name+": "+n+(n===1?" pezzo":" pezzi")+" → "+c.file;
+    if(c.prog){
+      $("progCat").textContent="Cat. Padre "+c.cat;
+      $("progBtn").textContent="Aggiungi "+c.name+"  SN "+nextNum(mode);
+      if(document.activeElement!==$("progLast")) $("progLast").value=prog[mode];
+    }
+  }
+  function nextNum(k){let n=prog[k]+1;while(has(String(n),k))n++;return n}
+  $("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.k;persistSet();$("progMsg").textContent="";$("expMsg").textContent="";renderMode()});
+  $("progBtn").onclick=()=>{
+    const k=mode,n=nextNum(k),prev=prog[k];
+    prog[k]=n;persistProg();
+    addSerial(String(n),k,()=>{if(prog[k]===n){prog[k]=prev;persistProg()}});
+    $("progMsg").textContent="";
+  };
+  $("progSave").onclick=()=>{
+    const v=$("progLast").value.trim();
+    if(!/^\d+$/.test(v)){$("progMsg").className="note err";$("progMsg").textContent="Scrivi solo il numero (es. 93).";return}
+    const old=prog[mode];prog[mode]=parseInt(v,10);persistProg();
+    const inList=items.filter(x=>x.k===mode&&+x.sn>prog[mode]).length;
+    $("progMsg").className="note "+(prog[mode]<old?"warn":"");
+    $("progMsg").textContent="Ultimo SN "+CATS[mode].name+": "+old+" → "+prog[mode]+". Il prossimo sarà SN "+nextNum(mode)+"."+(prog[mode]<old?" Attenzione: hai abbassato il numero, controlla di non ripetere SN già usati.":"");
+    $("progLast").blur();renderMode();
+  };
+  $("progLast").addEventListener("keydown",e=>{if(e.key==="Enter")$("progSave").click()});
+  $("manualBtn").onclick=()=>{const v=normalize($("manual").value);if(!valid(v)){toast("Formato non valido: solo cifre, con eventuale \"/\" (es. 160/14 o 1602).","err");return}if(addSerial(v,"cdptr"))$("manual").value=""};
   $("manual").addEventListener("keydown",e=>{if(e.key==="Enter")$("manualBtn").click()});
 
   // ---------- OCR ----------
@@ -304,7 +388,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
       // la foto viene scartata subito
       p.canvas.width=p.canvas.height=0;
       pending.shift();render();
-      if(v){ if($("autoAdd").checked) addSerial(v); else {reviewQ.push(v);showReview();buzz(60)} }
+      if(v){ if($("autoAdd").checked) addSerial(v,"cdptr"); else {reviewQ.push(v);showReview();buzz(60)} }
       else {buzz([200,100,200]);toast("S/N non trovato. Avvicinati, evita riflessi e riscatta.","err")}
     }
     processing=false;
@@ -323,7 +407,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
     const v=normalize($("revInput").value);
     if(!valid(v)){$("revInput").classList.add("bad");note2("Formato non valido: solo cifre, con eventuale \"/\" (es. 131/13).","err");return null}
     $("revInput").classList.remove("bad");
-    if(items.some(x=>x.sn===v)) note2("Attenzione: "+label(v)+" è già nella lista.","warn"); else if(!v.includes("/")) note2("Manca la barra: se sull'etichetta c'è (es. 131/13), aggiungi la parte mancante.","warn");
+    if(has(v,"cdptr")) note2("Attenzione: "+label(v,"cdptr")+" è già nella lista.","warn"); else if(!v.includes("/")) note2("Manca la barra: se sull'etichetta c'è (es. 131/13), aggiungi la parte mancante.","warn");
     else note2("Se il numero è diverso dall'etichetta, correggilo qui sopra.","");
     return v;
   }
@@ -331,7 +415,7 @@ details .g{display:grid;gap:10px;margin-top:10px}
   function nextReview(){reviewQ.shift();$("revInput").dataset.cur="";showReview()}
   $("revInput").addEventListener("input",checkRev);
   $("revInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("revOk").click()});
-  $("revOk").onclick=()=>{const v=checkRev();if(!v)return;if(addSerial(v))nextReview()};
+  $("revOk").onclick=()=>{const v=checkRev();if(!v)return;if(addSerial(v,"cdptr"))nextReview()};
   $("revNo").onclick=()=>{toast("Scartato.","");nextReview()};
 
   // ---------- fotocamera ----------
@@ -505,13 +589,13 @@ details .g{display:grid;gap:10px;margin-top:10px}
     const d=new Date(),z=n=>String(n).padStart(2,"0");
     const ts=d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())+"_"+z(d.getHours())+"-"+z(d.getMinutes())+"-"+z(d.getSeconds());
     // il CSV per P-touch ha sempre lo stesso nome, così resta collegato al modello di etichetta
-    return full?"CDPTR_tracciamento_"+ts+".csv":"cvs centralina di emergenza.csv";
+    return full?"Seriali_tracciamento_"+ts+".csv":CATS[mode].file;
   }
   function csv(full){
     const sep=$("sep").value,col=$("colName").value.trim()||"Seriale";
     const q=s=>/["\n;,]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;const L=[];
-    if(full){L.push(["N",col,"Data","Ora"].join(sep));items.forEach((it,i)=>{const d=new Date(it.t);L.push([i+1,q(label(it.sn)),d.toLocaleDateString("it-IT"),d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})].join(sep))})}
-    else{if($("header").checked)L.push(q(col));items.forEach(it=>L.push(q(label(it.sn))))}
+    if(full){L.push(["N",col,"Data","Ora","Cat. Padre","Apparecchiatura"].join(sep));items.forEach((it,i)=>{const d=new Date(it.t);L.push([i+1,q(label(it.sn,it.k)),d.toLocaleDateString("it-IT"),d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),q(CATS[it.k].cat),CATS[it.k].name].join(sep))})}
+    else{if($("header").checked)L.push(q(col));items.filter(it=>it.k===mode).forEach(it=>L.push(q(label(it.sn,it.k))))}
     return L.join("\r\n")+"\r\n";
   }
   function makeFile(full){
@@ -520,8 +604,9 @@ details .g{display:grid;gap:10px;margin-top:10px}
   }
   // Condivide il CSV (OneDrive, WhatsApp, mail...) senza salvarlo nei Download.
   // Sceglie in modo sincrono la forma che il browser accetta, poi apre subito la finestra di condivisione.
+  const count=full=>full?items.length:items.filter(x=>x.k===mode).length;
   function share(full){
-    if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
+    if(!count(full)){$("expMsg").textContent=full?"La lista è vuota.":"Nessun pezzo "+CATS[mode].name+" in lista.";return}
     if(!navigator.share){$("expMsg").textContent="Questo browser non ha la condivisione: apri la pagina in Chrome sul telefono, oppure usa Scarica.";return}
     const name=fileName(full);
     const body="\ufeff"+csv(full);
@@ -536,17 +621,17 @@ details .g{display:grid;gap:10px;margin-top:10px}
     let asText=false;
     if(!data){data={title:name,text:csv(full)};asText=true}
     navigator.share(data).then(()=>{
-      $("expMsg").textContent=(asText?"Condiviso come testo ":"Condiviso ")+(data.files?data.files[0].name:name)+" ("+items.length+" seriali).";
+      $("expMsg").textContent=(asText?"Condiviso come testo ":"Condiviso ")+(data.files?data.files[0].name:name)+" ("+count(full)+" seriali).";
     }).catch(e=>{
       if(e&&e.name==="AbortError"){$("expMsg").textContent="Condivisione annullata.";return}
       $("expMsg").textContent="Condivisione non riuscita ("+(e&&e.name||"errore")+": "+(e&&e.message||"")+"). Usa Scarica e mandami questo messaggio.";
     });
   }
   function download(full){
-    if(!items.length){$("expMsg").textContent="La lista è vuota.";return}
+    if(!count(full)){$("expMsg").textContent=full?"La lista è vuota.":"Nessun pezzo "+CATS[mode].name+" in lista.";return}
     const file=makeFile(full);
     const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=file.name;document.body.appendChild(a);a.click();a.remove();
-    $("expMsg").textContent="Scaricato "+file.name+" ("+items.length+" seriali).";
+    $("expMsg").textContent="Scaricato "+file.name+" ("+count(full)+" seriali).";
   }
   $("shPt").onclick=()=>share(false);
   $("shFull").onclick=()=>share(true);
